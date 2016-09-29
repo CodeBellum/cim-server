@@ -7,6 +7,7 @@
 var app = require('../app');
 var debug = require('debug')('untitled1:server');
 var http = require('http');
+var tcp = require('net');
 
 /**
  * Get port from environment and store in Express.
@@ -20,12 +21,26 @@ app.set('port', 80);
  */
 
 var server = http.createServer(app);
+var tcpserver = tcp.createServer({
+      allowHalfOpen: false,
+      pauseOnConnect: false
+    }, (c) => {
+      console.log("client connected");
+      c.on('end', () => { console.log('client disconnected');});
 
+});
+
+tcpserver.on('error', (err) => {
+  console.log(err);
+});
 /**
  * Listen on provided port, on all network interfaces.
  */
 
 server.listen(port);
+tcpserver.listen(11000, () => {
+  console.log('server bound on 11000');
+});
 server.on('error', onError);
 server.on('listening', onListening);
 
