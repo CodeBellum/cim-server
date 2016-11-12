@@ -1,58 +1,52 @@
 var express = require('express');
 var router = express.Router();
-var fs = require('fs');
-var path = require('path');
+const user = require('./users');
 
 /* GET users listing. */
-router.get('/{creds}', function(req, res, next) {
-    res.send(checkUserIsCreated(req.param('creds')));
+router.get('/search/:creds', function(req, res, next) {
+    console.log(req.params);
+    user.isCreated(req.params['creds']).then(function(result){
+        res.status(200);
+        res.json(result);
+        res.end();
+    }).catch(function(err){
+        res.status(404);
+        res.json({ status: 404, message: 'User with creds = ' + req.params['creds'] + ' not exists.', user: null });
+        res.end();
+    });
+});
+router.post('/login', function(req, res, next) {
+    console.log('from post');
+    console.log(req.body);
+
+    user.auth(req.body['login'], req.body['password']).then(function(result){
+        res.status(200);
+        res.json(result);
+        res.end();
+    }).catch(function(err){
+        res.status(404);
+        res.end('Please check the data.');
+    });
 });
 
-function checkUserIsCreated(creds) {
-    var path_to_file = path.join(__dirname, 'apixml', 'users.json');
-
-    fs.readFile(path_to_file, (err, data) => {
-        if (err) {
-            console.log(err);
-            return { status: 404, message: 'User with creds = ' + creds + ' not exists.', user: null };
-        } else {
-
-            // Check if user with current id exists.
-            var idSearch = findUserById(data, creds);
-            if (idSearch.status === 200) {
-                return idSearch;
-            }
-
-            // Check if user with current login exists.
-            var loginSearch = findUserByLogin(data, creds);
-            if (loginSearch.status === 200) {
-                return loginSearch;
-            }
-
-            return { status: 404, message: 'User with creds = ' + creds + ' not exists.', user: null };
-        }
+router.post('/register', function(req, res, next) {
+    console.log(req.body);
+    user.isExists(req.body['login']).then(function(result){
+        res.status(400);
+        res.end('User with same login had already registered.');
+    }).catch(function(err){
+        user.register(req.body['login'], req.body['password'])
+            .then(function(result) {
+                res.status(200);
+                res.json(result);
+                res.end();
+            })
+            .catch(function(error) {
+                console.log('from catch');
+                res.status(400);
+                res.end('User with same login had already registered.')
+            });
     });
-
-}
-
-function findUserById(jsonstr, id) {
-    var lib = JSON.parse(jsonstr);
-    lib.users.forEach(function(user, i, arr) {
-        if (user.id === id) {
-            return { status: 200, message: 'OK', user: user };
-        }
-    });
-    return { status: 404, message: 'User with id = ' + id + ' not exists.', user: null };
-}
-
-function findUserByLogin(jsonstr, login) {
-    var lib = JSON.parse(jsonstr);
-    lib.users.forEach(function(user, i, arr) {
-        if (user.login === login) {
-            return { status: 200, message: 'OK', user: user };
-        }
-    });
-    return { status: 404, message: 'User with login = ' + login + ' not exists.', user: null };
-}
+});
 
 module.exports = router;

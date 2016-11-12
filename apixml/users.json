@@ -1,14 +1,1 @@
-{
-  "users" : [
-    {
-      "id" : 1,
-      "login" : "admin",
-      "password" : "password"
-    },
-    {
-      "id" : 2,
-      "login" : "admin2",
-      "password" : "password2"
-    }
-  ]
-}
+{"users":[{"id":1,"login":"admin","password":"password"},{"id":2,"login":"admin2","password":"password2"},{"id":3,"login":"admin3","password":"password"}]}
