@@ -1,0 +1,8 @@
+<code_scheme name="Default (1)">
+  <JSCodeStyleSettings>
+    <option name="USE_DOUBLE_QUOTES" value="false" />
+  </JSCodeStyleSettings>
+  <codeStyleSettings language="JavaScript">
+    <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="true" />
+  </codeStyleSettings>
+</code_scheme>
