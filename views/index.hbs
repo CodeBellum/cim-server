@@ -1,4 +1,76 @@
-<h1>{{title}}</h1>
-<p>Welcome to {{title}}</p>
-<link rel="stylesheet" href="../public/stylesheets/bootstrap.min.css">
-<script src="../public/javascripts/bootstrap.js"></script>
+<link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+<script src="../javascripts/bootstrap.js"></script>
+<h1 align="center">{{title}}</h1>
+<p align="center">Welcome to {{title}}</p>
+<body onload="">
+<div id="loginForm">
+    <h2 align="center">Please login or sign up</h2>
+    <form class="form-horizontal" onsubmit="return false;">
+        <div class="control-group" align="center">
+            <label class="control-label" for="inputEmail">Email or login</label>
+            <div class="controls">
+                <input type="text" id="inputEmail" placeholder="Email or login">
+            </div>
+        </div>
+        <div class="control-group" align="center">
+            <label class="control-label" for="inputPassword">Password</label>
+            <div class="controls">
+                <input type="password" id="inputPassword" placeholder="Password">
+            </div>
+        </div>
+        <div class="control-group" align="center">
+            <div class="controls">
+                <label class="checkbox">
+                    <input type="checkbox"> Remember me
+                </label>
+                <button type="submit" class="btn btn-primary" name="loginBtn" onclick="sendToServer('loginBtn')">Log in</button>
+                <button type="submit" class="btn btn-primary" name="registerBtn" onclick="sendToServer('registerBtn')">Sign up</button>
+            </div>
+        </div>
+    </form>
+    <address>
+        <strong>If you have some questions please mail to:</strong><br>
+        <a href="mailto:#">codebellum@gmail.com</a>
+    </address>
+</div>
+<div id="mainPage">
+
+</div>
+<script type="text/javascript">
+    function sendToServer(buttonName){
+        if (buttonName == 'loginBtn') {
+            $.ajax({
+                url: '/api/login',
+                type: 'POST',
+                data: {
+                    login: document.getElementById('inputEmail').value,
+                    password: document.getElementById('inputPassword').value
+                },
+                success: function (data) {
+                    document.cookie = "token=" + data['token'];
+                    console.log(data);
+                },
+                error: function (err) {
+                    alert(err['responseText']);
+                    console.log(err);
+                }
+            });
+        }
+    }
+
+    function checkCookie(){
+        $.ajax({
+            url: 'api/cookie',
+            type: 'POST',
+            data: {token: document.cookie},
+            success: function(data) {
+                $('#loginForm').html();
+            },
+            error: function(err) {
+                $('#mainPage').html();
+            }
+        });
+    }
+</script>
+</body>

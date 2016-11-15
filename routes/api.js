@@ -1,6 +1,8 @@
 var express = require('express');
 var router = express.Router();
+var fs = require('fs');
 const user = require('./users');
+const path_to_tokens = "./apixml/tokens.json";
 
 /* GET users listing. */
 router.get('/search/:creds', function(req, res, next) {
@@ -49,4 +51,28 @@ router.post('/register', function(req, res, next) {
     });
 });
 
+router.post('/cookie', function(req, res, next) {
+    console.log(req.body);
+    var token = req.body['token'];
+});
+
+function checkToken(token){
+    return new Promise(function (resolve, reject) {
+        fs.readFile(path_to_tokens, 'utf8', (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(findUserById(data, creds).then(function(result){
+                    return result;
+                }).catch(function(res){
+                    return findUserByLogin(data, creds).then(function(result){
+                        return result;
+                    }).catch(function (res) {
+                        return res;
+                    })
+                }));
+            }
+        });
+    });
+}
 module.exports = router;
