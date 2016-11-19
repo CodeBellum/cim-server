@@ -2,6 +2,9 @@
   <JSCodeStyleSettings>
     <option name="USE_DOUBLE_QUOTES" value="false" />
   </JSCodeStyleSettings>
+  <XML>
+    <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
+  </XML>
   <codeStyleSettings language="JavaScript">
     <option name="LINE_COMMENT_AT_FIRST_COLUMN" value="true" />
   </codeStyleSettings>
