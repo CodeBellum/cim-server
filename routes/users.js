@@ -1,90 +1,102 @@
-var fs = require('fs');
-var path = require('path');
-const path_to_file = "./apixml/users.json";
+const db = require('sqlite');
 
-function checkUserIsCreated(creds) {
-  return new Promise(function (resolve, reject) {
-    fs.readFile(path_to_file, 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(findUserById(data, creds).then(function(result){
-          return result;
-        }).catch(function(res){
-          return findUserByLogin(data, creds).then(function(result){
-            return result;
-          }).catch(function (res) {
-            return res;
+// Methods to work with users.
+class UsersProvider {
+  constructor(){
+
+  }
+
+  // Finds user with specified login or id.
+  find(cred){
+    return new Promise(function(resolve, reject){
+      db.open('./apixml/users.db').then(() => {
+            return db.get('SELECT * FROM users WHERE (login = ? OR id = ?) AND isActive = 1', cred, cred);
           })
-        }));
-      }
+          .then(function(res){
+            db.close();
+            resolve(res);
+          }).catch(function(err){
+        console.log('User is not exists.');
+        console.log(err);
+        db.close();
+        reject(err);
+      });
     });
-  });
-}
+  };
 
-function findUserById(jsonstr, id) {
-  return new Promise(function(resolve,reject){
-    var lib = JSON.parse(jsonstr);
-    lib['users'].forEach(function(user, i, arr) {
-      if (user['id'] == id) {
-        resolve({ status: 200, message: 'OK', user: user });
-      }
+  // Register user.
+  reg(user){
+    return new Promise(function(resolve, reject){
+      db.open('./apixml/users.db', { Promise }).then(() =>  {
+        return db.run('INSERT INTO users(login, password, email, isActive, genderId) VALUES (?, ?, ?, ?, ?)', user['login'],
+            user['password'], user['email'], 1, user['gender']);
+      }).then(function(res){
+        db.close();
+        resolve(res);
+      }).catch(function(err){
+        console.log(err);
+        db.close();
+        reject(err);
+      });
     });
-    reject({ status: 404, message: 'User with id = ' + id + ' not exists.', user: null });
-  });
-}
+  };
 
-function findUserByLogin(jsonstr, login) {
-  return new Promise(function(resolve, reject){
-    var lib = JSON.parse(jsonstr);
-    lib['users'].forEach(function(user, i, arr) {
-      if (user['login'] == login) {
-        resolve({ status: 200, message: 'OK', user: user });
-      }
+  // Authenticate user.
+  auth(login, password) {
+    return new Promise(function(resolve, reject){
+      db.open('./apixml/users.db').then(() => {
+            return db.get('SELECT * FROM users WHERE login = ? AND password = ? AND isActive = 1', login, password);
+          })
+          .then(function(res){
+            if (res == undefined)
+            {
+              db.close();
+              reject(false);
+            }
+            db.run('UPDATE users SET lastLogin = datetime(\'now\') WHERE id = ?', res['id']);
+            db.close();
+            resolve(true);
+          }).catch(function(err){
+        console.log('User is not exists.');
+        console.log(err);
+        db.close();
+        reject(false);
+      })
     });
-    reject({ status: 404, message: 'User with login = ' + login + ' not exists.', user: null });
-  });
-}
+  };
 
-function authUser(login, password) {
-  return new Promise(function(resolve, reject){
-    var data = fs.readFileSync(path_to_file, 'utf8');
-    var lib = JSON.parse(data);
-    lib['users'].forEach(function(user, i, arr) {
-      if (user['login'] == login && user['password'] == password) {
-        resolve({ status: 200, message: 'OK', user: user });
-      }
+  // Changes user info.
+  change(id, user){
+    return new Promise(function(resolve, reject){
+      db.open('./apixml/users.db', { Promise }).then(() =>  {
+        return db.run('UPDATE users SET password = ?, email = ?, genderId = ? WHERE id = ?',
+            user['password'], user['email'], user['gender'], id);
+      }).then(function(res){
+        db.close();
+        resolve(res);
+      }).catch(function(err){
+        console.log(err);
+        db.close();
+        reject(err);
+      });
     });
-    reject({ status: 404, message: 'User with login = ' + login + ' not exists.', user: null });
-  });
+  };
+
+  // Inactivates user.
+  deleteUser(id){
+    return new Promise(function(resolve, reject){
+      db.open('./apixml/users.db', { Promise }).then(() =>  {
+        return db.run('UPDATE users SET isActive = 0 WHERE id = ?', id);
+      }).then(function(res){
+        db.close();
+        resolve(res);
+      }).catch(function(err){
+        console.log(err);
+        db.close();
+        reject(err);
+      });
+    });
+  };
 }
 
-function regUser(login, password) {
-  return new Promise(function(resolve, reject){
-    resolve(fs.readFileSync(path_to_file, 'utf8'));
-  }).then(function(data) {
-    //console.log(data);
-    var lib = JSON.parse(data);
-    console.log(lib);
-    var length = lib['users'].length;
-    var lastId = 1;
-
-    if (length > 0)
-    {
-      lastId = lib['users'][length-1]['id'];
-    }
-
-    lib['users'][length]={id: lastId + 1, login: login, password: password};
-    fs.writeFileSync(path_to_file, JSON.stringify(lib), 'utf8');
-
-    console.log(lastId);
-    //lib['users'].add({});
-    return{id: lastId + 1, login: login, password: password};
-  });
-}
-
-exports.isCreated = checkUserIsCreated;
-exports.register = regUser;
-exports.auth = authUser;
-exports.findByLogin = findUserByLogin;
-exports.findById = findUserById;
+exports.provider = UsersProvider;

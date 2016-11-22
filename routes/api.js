@@ -1,78 +1,131 @@
 var express = require('express');
 var router = express.Router();
-var fs = require('fs');
 const user = require('./users');
-const path_to_tokens = "./apixml/tokens.json";
+var messagesProvider = require('./messages');
+var mProvider = new messagesProvider.provider();
+var uProvider = new user.provider();
 
-/* GET users listing. */
-router.get('/search/:creds', function(req, res, next) {
-    console.log(req.params);
-    user.isCreated(req.params['creds']).then(function(result){
-        res.status(200);
-        res.json(result);
-        res.end();
+router.all('/login', requireAuth);
+
+// Checks base auth. Should be placed in most places to avoid unauthorized API usage.
+function requireAuth(req, res, next){
+    var authStruct = parseAuth(req);
+    uProvider.auth(authStruct.username, authStruct.password).then(function(result){
+        next();
     }).catch(function(err){
-        res.status(404);
-        res.json({ status: 404, message: 'User with creds = ' + req.params['creds'] + ' not exists.', user: null });
+        console.log(err);
+        res.status(401);
         res.end();
-    });
-});
-router.post('/login', function(req, res, next) {
-    console.log('from post');
-    console.log(req.body);
-
-    user.auth(req.body['login'], req.body['password']).then(function(result){
-        res.status(200);
-        res.json(result);
-        res.end();
-    }).catch(function(err){
-        res.status(404);
-        res.end('Please check the data.');
-    });
-});
-
-router.post('/register', function(req, res, next) {
-    console.log(req.body);
-    user.isExists(req.body['login']).then(function(result){
-        res.status(400);
-        res.end('User with same login had already registered.');
-    }).catch(function(err){
-        user.register(req.body['login'], req.body['password'])
-            .then(function(result) {
-                res.status(200);
-                res.json(result);
-                res.end();
-            })
-            .catch(function(error) {
-                console.log('from catch');
-                res.status(400);
-                res.end('User with same login had already registered.')
-            });
-    });
-});
-
-router.post('/cookie', function(req, res, next) {
-    console.log(req.body);
-    var token = req.body['token'];
-});
-
-function checkToken(token){
-    return new Promise(function (resolve, reject) {
-        fs.readFile(path_to_tokens, 'utf8', (err, data) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(findUserById(data, creds).then(function(result){
-                    return result;
-                }).catch(function(res){
-                    return findUserByLogin(data, creds).then(function(result){
-                        return result;
-                    }).catch(function (res) {
-                        return res;
-                    })
-                }));
-            }
-        });
     });
 }
+
+router.post('/login', function(req, res, next) {
+        res.status(200);
+        res.end();
+    }
+);
+
+// Registers user. If login or email is already in use, then send error message.
+router.post('/register', function(req, res, next) {
+    console.log(req.body);
+    uProvider.reg(req.body).then(function (result) {
+        uProvider.find(result['lastID']).then((userFromDb) => {
+            sendJsonOKResult(res, userFromDb);
+        }).catch( function(err) {
+            sendError(res, err);
+        });
+    }).catch(function(err){
+        var error = {
+            message: 'User with same email or login is already registered.'
+        };
+        sendError(res, error);
+    });
+});
+
+router.all('/user', requireAuth);
+
+router.put('/user', function(req, res, next){
+    var authStruct = parseAuth(req);
+    uProvider.find(authStruct.username).then((userFromDb) => {
+        uProvider.change(userFromDb['id'], req.body).then(() => {
+            uProvider.find(authStruct.username).then((result)=> {
+                sendJsonOKResult(res, {message: 'User was successfully deleted.'});
+            }).catch(function(err){
+                sendError(res, err);
+            });
+        }).catch(function(err){
+            sendError(res, err);
+        });
+    }).catch(function(err){
+        sendError(res, err);
+    });
+});
+
+router.delete('/user', function(req, res, next){
+    var authStruct = parseAuth(req);
+    uProvider.find(authStruct.username).then((userFromDb) => {
+        uProvider.deleteUser(userFromDb['id']).then((result) => {
+            sendJsonOKResult(res, result);
+        }).catch(function(err){
+            sendError(res, err);
+        });
+    }).catch(function(err){
+        sendError(res, err);
+    })
+});
+
+router.all('/messages', requireAuth);
+
+router.get('/messages', function(req, res, next) {
+    var authStruct = parseAuth(req);
+    uProvider.find(authStruct.username).then((userFromDb) => {
+        mProvider.getAllMessages(userFromDb['id']).then(function(result){
+            sendJsonOKResult(res, result);
+        }).catch(function(err){
+            sendError(res, err);
+        });
+    }).catch( function(err) {
+        sendError(res, err);
+    });
+});
+
+router.post('/messages', function(req, res, next) {
+    if (req.body['senderId'] == req.body['receiverId']) {
+        sendError(res, {message: 'You cannot send message to yourself!'});
+    }
+    mProvider.send(req.body['senderId'], req.body['receiverId'], req.body['text']).then(function(result){
+        mProvider.find(result['lastID']).then((message) => {
+            sendJsonOKResult(res, message);
+        }).catch( function(err) {
+            sendError(res, err);
+        });
+    }).catch(function(err){
+        sendError(res, err);
+    });
+});
+
+function sendJsonOKResult(res, json){
+    res.status(200);
+    res.json(json);
+    res.end();
+}
+
+function sendError(res, err) {
+    res.status(400);
+    res.json(err);
+    res.end();
+}
+
+function parseAuth(req){
+
+    // If you have questions please see http://stackoverflow.com/questions/5951552/basic-http-authentication-in-node-js
+    var header=req.headers['authorization']||'',        // get the header
+        token=header.split(/\s+/).pop()||'',            // and the encoded auth token
+        auth=new Buffer(token, 'base64').toString(),    // convert from base64
+        parts=auth.split(/:/),                          // split on colon
+        username=parts[0],
+        password=parts[1];
+    return {username: username, password: password};
+}
+
 module.exports = router;
