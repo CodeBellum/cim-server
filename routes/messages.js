@@ -1,5 +1,6 @@
 const db = require('sqlite');
-
+const notifications = require('./notifications');
+var nProvider = new notifications.provider();
 // Methods to work with messages.
 class MessageProvider {
     constructor(){
@@ -31,7 +32,7 @@ class MessageProvider {
                 return db.run('INSERT INTO messages(sender_id, receiver_id, text) VALUES (?, ?, ?)',
                     senderId, receiverId, text);
             }).then(function(res){
-                db.close();
+                nProvider.add(senderId, 10);
                 resolve(res);
             }).catch(function(err){
                 console.log(err);

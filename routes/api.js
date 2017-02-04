@@ -2,8 +2,10 @@ var express = require('express');
 var router = express.Router();
 const user = require('./users');
 var messagesProvider = require('./messages');
+const notifications = require('./notifications');
 var mProvider = new messagesProvider.provider();
 var uProvider = new user.provider();
+var nProvider = new notifications.provider();
 
 router.all('/login', requireAuth);
 
@@ -100,6 +102,48 @@ router.post('/messages', function(req, res, next) {
             sendError(res, err);
         });
     }).catch(function(err){
+        sendError(res, err);
+    });
+});
+
+router.all('/friendship', requireAuth);
+
+router.post('/friendship', function(req, res, next) {
+    if (req.body['userId'] == req.body['friendId']) {
+        sendError(res, {message: 'You cannot become friend with yourself!'});
+    }
+    uProvider.friend(req.body['userId'], req.body['friendId']).then(function(result){
+        res.status(200);
+        res.end();
+        }).catch( function(err) {
+            sendError(res, err);
+        });
+});
+
+router.put('/friendship', function(req, res, next) {
+    uProvider.verifyFriendship(req.body['friendshipId']).then(function(result){
+        res.status(200);
+        res.end();
+    }).catch( function(err) {
+        sendError(res, err);
+    });
+});
+
+router.all('/notifications', requireAuth);
+
+router.get('/notifications', function(req, res, next) {
+    nProvider.receiveForUser(req.params['userId']).then(function(result){
+       sendJsonOKResult(res, result);
+    }).catch( function(err) {
+        sendError(res, err);
+    });
+});
+
+router.delete('/notifications', function(req, res, next) {
+    nProvider.clearForUser(req.body['userId']).then(function(result){
+        res.status(200);
+        res.end();
+    }).catch( function(err) {
         sendError(res, err);
     });
 });

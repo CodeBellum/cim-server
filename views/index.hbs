@@ -1,10 +1,11 @@
 <link rel="stylesheet" href="../stylesheets/bootstrap.min.css">
+<link rel="stylesheet" href="../stylesheets/index.css">
 <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 <script src="../javascripts/bootstrap.js"></script>
 <h1 align="center">{{title}}</h1>
 <p align="center">Welcome to {{title}}</p>
 <body onload="">
-<div id="loginForm">
+<div id="loginForm" class="b-container">
     <h2 align="center">Please login or sign up</h2>
     <form class="form-horizontal" onsubmit="return false;">
         <div class="control-group" align="center">
@@ -25,7 +26,7 @@
                     <input type="checkbox"> Remember me
                 </label>
                 <button type="submit" class="btn btn-primary" name="loginBtn" onclick="sendToServer('loginBtn')">Log in</button>
-                <button type="submit" class="btn btn-primary" name="registerBtn" onclick="sendToServer('registerBtn')">Sign up</button>
+                <button type="submit" class="btn btn-primary" name="registerBtn" onclick="PopUpShow()">Sign up</button>
             </div>
         </div>
     </form>
@@ -34,10 +35,44 @@
         <a href="mailto:#">codebellum@gmail.com</a>
     </address>
 </div>
-<div id="mainPage">
-
+<div id="regPopup" class="b-popup">
+    <div class="b-popup-content">
+    <form class="form-horizontal" onsubmit="return false;">
+        <div class="control-group" align="center">
+            <label class="control-label" for="inputLogin">Login</label>
+            <div class="controls">
+                <input type="text" id="inputLogin" placeholder="Login">
+            </div>
+            <label class="control-label" for="inputPassword">Password</label>
+            <div class="controls">
+                <input type="password" id="inputPassword" placeholder="Password">
+            </div>
+            <label class="control-label" for="inputEmail">Email</label>
+            <div class="controls">
+                <input type="text" id="inputEmail" placeholder="Email">
+            </div>
+        </div>     
+        <div class="control-group" align="center">
+            <div class="controls">
+                <button type="submit" class="btn btn-primary" name="sendBtn" onclick="sendToServer('sendBtn')">Sign up</button>
+            </div>
+        </div>
+    </form>
+    </div>
 </div>
 <script type="text/javascript">
+    $(document).ready(function(){
+        PopUpHide();
+    });
+
+    function PopUpShow(){
+        $("#regPopup").show();
+    }
+
+    function PopUpHide(){
+        $("#regPopup").hide();
+    }   
+
     function sendToServer(buttonName){
         if (buttonName == 'loginBtn') {
             $.ajax({
@@ -48,8 +83,11 @@
                     password: document.getElementById('inputPassword').value,
                     cookies: document.cookie
                 },
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(document.getElementById('inputEmail').value + ":" + document.getElementById('inputPassword').value));
+                },
                 success: function (data) {
-                    document.cookie = "token=" + data['token'];
+                    document.cookie = "token=" + data['token'];                            
                     console.log(data);
                 },
                 error: function (err) {
@@ -57,6 +95,27 @@
                     console.log(err);
                 }
             });
+        } else if (buttonName == 'sendBtn') {
+            PopUpHide();
+            /*$.ajax({
+                url: '/api/login',
+                type: 'POST',
+                data: {
+                    login: document.getElementById('inputEmail').value,
+                    password: document.getElementById('inputPassword').value,
+                },
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader ("Authorization", "Basic " + btoa(document.getElementById('inputEmail').value + ":" + document.getElementById('inputPassword').value));
+                },
+                success: function (data) {
+                    document.cookie = "token=" + data['token'];                            
+                    console.log(data);
+                },
+                error: function (err) {
+                    alert(err['responseText']);
+                    console.log(err);
+                }
+            });*/
         }
     }
 
@@ -72,6 +131,11 @@
                 $('#mainPage').html();
             }
         });
+    }
+
+    function showReg()
+    {
+        $('#mainPage').slideDown();
     }
 </script>
 </body>
