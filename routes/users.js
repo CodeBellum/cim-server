@@ -46,42 +46,6 @@ class UsersProvider {
     });
   };
 
-    // Become a friend with user.
-    friend(userId, friendId){
-        return new Promise(function(resolve, reject){
-            db.open('./apixml/users.db', { Promise }).then(() =>  {
-                return db.run('INSERT INTO friendship(first_user_id, second_user_id) VALUES (?, ?)', userId, friendId);
-            }).then(function(res){
-                nProvider.add(friendId, 9);
-
-                // Log friendship operation.
-                db.run('INSERT INTO Logs(user_id, operation_id, operation_info) VALUES (?, ?, ?)', userId, 9,
-                    'User ' + userId + ' and user ' + friendId + ' become friends.');
-                db.close();
-                resolve(res);
-            }).catch(function(err){
-                console.log(err);
-                db.close();
-                reject(err);
-            });
-        });
-    };
-
-    verifyFriendship(friendshipId){
-        return new Promise(function(resolve, reject){
-            db.open('./apixml/users.db', { Promise }).then(() =>  {
-                return db.run('UPDATE friendship SET isVerified = 1 WHERE relation_id = ?', friendshipId);
-            }).then(function(res){
-                db.close();
-                resolve(res);
-            }).catch(function(err){
-                console.log(err);
-                db.close();
-                reject(err);
-            });
-        });
-    };
-
   // Authenticate user.
   auth(login, password) {
     return new Promise(function(resolve, reject){
@@ -101,7 +65,7 @@ class UsersProvider {
               // Log register operation.
               db.run('INSERT INTO Logs(user_id, operation_id) VALUES (?, ?)', res['id'], 1);
             db.close();
-            resolve(true);
+            resolve(res);
           }).catch(function(err){
         console.log('User is not exists.');
         console.log(err);

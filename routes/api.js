@@ -1,13 +1,13 @@
 var express = require('express');
 var router = express.Router();
 const user = require('./users');
+const friendship = require('./friendship');
 var messagesProvider = require('./messages');
 const notifications = require('./notifications');
 var mProvider = new messagesProvider.provider();
 var uProvider = new user.provider();
 var nProvider = new notifications.provider();
-
-router.all('/login', requireAuth);
+var fProvider = new friendship.provider();
 
 // Checks base auth. Should be placed in most places to avoid unauthorized API usage.
 function requireAuth(req, res, next){
@@ -22,8 +22,14 @@ function requireAuth(req, res, next){
 }
 
 router.post('/login', function(req, res, next) {
-        res.status(200);
+    var authStruct = parseAuth(req);
+    uProvider.auth(authStruct.username, authStruct.password).then(function(result){
+      sendJsonOKResult(res, result);
+    }).catch(function(err){
+        console.log(err);
+        res.status(401);
         res.end();
+    });       
     }
 );
 
@@ -109,10 +115,12 @@ router.post('/messages', function(req, res, next) {
 router.all('/friendship', requireAuth);
 
 router.post('/friendship', function(req, res, next) {
+    
+    // TODO: receive user ID from authorization. It's obvious.
     if (req.body['userId'] == req.body['friendId']) {
         sendError(res, {message: 'You cannot become friend with yourself!'});
     }
-    uProvider.friend(req.body['userId'], req.body['friendId']).then(function(result){
+    fProvider.friend(req.body['userId'], req.body['friendId']).then(function(result){
         res.status(200);
         res.end();
         }).catch( function(err) {
@@ -120,10 +128,24 @@ router.post('/friendship', function(req, res, next) {
         });
 });
 
+/**
+ * Accepts or declines the friendship request.
+ */
 router.put('/friendship', function(req, res, next) {
-    uProvider.verifyFriendship(req.body['friendshipId']).then(function(result){
+    fProvider.verifyFriendship(req.body['friendshipId'], req.body['accepted']).then(function(result){
         res.status(200);
         res.end();
+    }).catch( function(err) {
+        sendError(res, err);
+    });
+});
+
+/**
+ * Returns all friends for specified user.
+ */
+router.get('/friendship', function(req, res, next) {
+    fProvider.findAllFriends(req.params['userId']).then(function(result){
+        sendJsonOKResult(res, result);
     }).catch( function(err) {
         sendError(res, err);
     });

@@ -5,11 +5,12 @@ var nProvider = new notifications.provider();
 class MessageProvider {
     constructor(){
     }
+
     // Get all messages for specified user.
     getAllMessages(receiverId) {
         return new Promise(function(resolve, reject){
             db.open('./apixml/users.db').then(() => {
-                    return db.all('SELECT * FROM messages WHERE receiver_id = ?', receiverId);
+                    return db.all('SELECT TOP 1000 * FROM messages WHERE receiver_id = ? ORDER BY message_id desc', receiverId);
                 })
                 .then(function(res){
                     db.close();
